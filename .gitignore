@@ -2,7 +2,9 @@ node_modules/
 .preview/
 .legacy/
 legacy/
+.bak/
 _test.js
+_t2.js
 .workbuddy/
 *.png
 .DS_Store
