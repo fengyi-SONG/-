@@ -1,5 +1,4 @@
 node_modules/
-.preview/
 .legacy/
 legacy/
 .bak/
@@ -7,6 +6,12 @@ _test.js
 _t2.js
 _audit*.js
 .workbuddy/
-*.png
 .DS_Store
 Thumbs.db
+
+# 预览临时产物（截图脚本生成的中间文件）
+.preview/
+
+# 图片默认忽略，但保留界面验证证据
+*.png
+!docs/screenshots/*.png
