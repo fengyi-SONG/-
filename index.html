@@ -65,6 +65,15 @@ input,textarea,select{font-family:inherit;font-size:14px;color:var(--text)}
 .q-sub{font-size:13px;color:var(--muted);line-height:1.65;margin-bottom:18px}
 .q-tip{font-size:12px;color:var(--warn);background:color-mix(in srgb,var(--warn) 9%,transparent);
   border-left:2px solid var(--warn);padding:8px 12px;border-radius:0 8px 8px 0;margin-bottom:16px;line-height:1.6}
+.q-why{font-size:11.5px;color:var(--muted);background:var(--panel2);border-left:2px solid #3d4452;
+  padding:7px 11px;border-radius:0 7px 7px 0;margin-bottom:14px;line-height:1.6}
+
+/* 缺口清单：跳过的内容长期可见 */
+.gap-box{display:none;flex:0 0 auto;border-top:1px solid var(--line);padding:10px 16px;background:var(--panel2)}
+.gap-box.on{display:block}
+.gap-h{font-size:11.5px;color:var(--muted);margin-bottom:7px}
+.gap-h b{color:var(--warn)}
+.gap-chip{font-size:11px;padding:4px 9px}
 
 /* 选项 */
 .opts{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
@@ -158,6 +167,36 @@ textarea.field{resize:vertical;min-height:104px}
 .toast .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--ok);margin-right:8px}
 .toast.err .dot{background:var(--bad)}
 
+/* ===== 事实检查面板 ===== */
+.fs-pill{font-size:11px;padding:2px 9px;border-radius:100px;border:1px solid var(--line)}
+.fs-unknown{color:#e88a8a;border-color:#5c3333;background:rgba(239,93,107,.10)}
+.fs-assume{color:#f0a13c;border-color:#5c4526;background:rgba(240,161,60,.10)}
+.fs-plan{color:#6fa8dc;border-color:#2c4560;background:rgba(90,150,210,.10)}
+.fs-claim{color:#8b909c}
+.fs-fact,.fs-evidence{color:#22c58b;border-color:#255c47;background:rgba(34,197,139,.10)}
+.fs-item{border:1px solid var(--line);border-radius:11px;padding:13px 15px;margin-bottom:10px;
+  background:var(--panel2);transition:.2s}
+.fs-item.fs-done{opacity:.42}
+.fs-head{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.fs-kind{font-size:11px;letter-spacing:.08em;color:var(--accent);font-weight:600}
+.fs-item .fs-status{font-size:10.5px;padding:2px 8px;border-radius:100px;border:1px solid var(--line)}
+.fs-text{font-size:13px;line-height:1.6;color:var(--text);margin-bottom:6px;word-break:break-word}
+.fs-hint{font-size:11.5px;color:var(--muted);margin-bottom:10px;line-height:1.5}
+.fs-actions{display:flex;gap:6px;flex-wrap:wrap}
+.fs-btn{font-size:11.5px;padding:4px 11px;border-radius:7px;border:1px solid var(--line);
+  background:var(--panel3);color:var(--text);transition:.15s}
+.fs-btn:hover{border-color:var(--accent);color:var(--accent)}
+.fs-btn-mute{color:var(--muted)}
+.fs-empty{padding:26px;text-align:center;color:var(--ok);font-size:13.5px;line-height:1.8}
+
+/* ===== 隐私面板 ===== */
+.pw-block{margin-bottom:14px;padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--panel2)}
+.pw-k{font-size:12px;color:var(--accent);font-weight:600;margin-bottom:5px}
+.pw-d{font-size:12.5px;color:var(--muted);line-height:1.7}
+.pw-d strong{color:var(--text)}
+.pw-warn{border-color:#5c4526;background:rgba(240,161,60,.08)}
+.pw-warn .pw-k{color:var(--warn)}
+
 @media (max-width:1020px){
   .app{grid-template-columns:1fr;grid-template-rows:1fr 1fr}
   .left{border-right:none;border-bottom:1px solid var(--line)}
@@ -171,6 +210,7 @@ textarea.field{resize:vertical;min-height:104px}
   <div class="sp"></div>
   <button class="btn btn-sm" id="btnSample">示例</button>
   <button class="btn btn-sm" id="btnReset">重来</button>
+  <button class="btn btn-sm" id="btnPrivacy">数据与隐私</button>
   <button class="btn btn-sm" id="btnSettings">AI 设置</button>
   <button class="btn btn-sm" id="btnExportHtml">导出网页</button>
   <button class="btn btn-sm btn-p" id="btnExportPdf">导出 PDF</button>
@@ -192,6 +232,7 @@ textarea.field{resize:vertical;min-height:104px}
     </div>
 
     <div class="wz-body" id="wzBody"></div>
+    <div class="gap-box" id="gapBox"></div>
 
     <div class="wz-foot">
       <button class="btn btn-sm btn-ghost" id="btnBack">← 上一步</button>
@@ -210,6 +251,7 @@ textarea.field{resize:vertical;min-height:104px}
         <div style="display:flex;gap:5px" id="accentRow"></div>
       </div>
       <div class="sp"></div>
+      <button class="btn btn-sm" id="btnFact" title="检查所有还没有依据的陈述（Ctrl+K）">🛡 事实检查 <b id="factCount" style="color:var(--warn)"></b></button>
       <button class="btn btn-sm" id="btnEdit" title="直接在预览里点文字修改（Ctrl+E）">✏️ 就地编辑</button>
       <div class="seg">
         <button class="on" data-view="desktop">桌面</button>
@@ -248,6 +290,40 @@ textarea.field{resize:vertical;min-height:104px}
   </div>
 </div>
 
+<div class="mask" id="mPrivacy">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-h"><h3>数据与隐私</h3><button class="btn btn-sm" data-close="mPrivacy">关闭</button></div>
+    <div class="modal-b">
+      <div class="pw-block">
+        <div class="pw-k">① 本地处理（默认，不联网）</div>
+        <div class="pw-d">你填写的全部内容、问答记录、作品集渲染、PDF 生成，都只在你本机浏览器里发生。没有后端，没有埋点，没有账号。</div>
+      </div>
+      <div class="pw-block">
+        <div class="pw-k">② 链接读取（只有你点「读取」时才发生）</div>
+        <div class="pw-d">目前只支持 GitHub 仓库，请求发往 <code>api.github.com</code>，内容是仓库的公开信息。
+          <strong>不会</strong>把你的链接发给任何第三方代理服务。</div>
+      </div>
+      <div class="pw-block">
+        <div class="pw-k">③ AI 增强（你填写 Key 并同意后才发生）</div>
+        <div class="pw-d">只有你主动点击润色时，才会把你提交的文本发到<strong>你自己填的</strong>接口地址。不经过本产品任何服务器。</div>
+      </div>
+      <div class="pw-block pw-warn">
+        <div class="pw-k">⚠ 关于 API Key 的真实风险</div>
+        <div class="pw-d">纯前端架构下，Key 只能明文存在浏览器 localStorage 里。<strong>它不是安全的</strong>：
+          同源的任何脚本、浏览器扩展、以及和你共用这台电脑的人都能读到它。
+          建议用单独的低额度 Key，用完就点下面的删除。</div>
+      </div>
+      <div class="pw-block">
+        <div class="pw-k">④ 删数据</div>
+        <div class="pw-d">没有云端副本，所以删了就是真删。点击下方按钮会清空：作品集内容、问答记录、API Key。</div>
+      </div>
+    </div>
+    <div class="modal-f">
+      <button class="btn" style="color:var(--bad);border-color:#5c3333" id="btnWipe">删除本机全部数据</button>
+    </div>
+  </div>
+</div>
+
 <div class="mask" id="mFree">
   <div class="modal">
     <div class="modal-h"><h3>一次性说清楚</h3><button class="btn btn-sm" data-close="mFree">关闭</button></div>
@@ -278,65 +354,141 @@ textarea.field{resize:vertical;min-height:104px}
 
 <div class="toast" id="toast"></div>
 
+<div class="mask" id="mFact">
+  <div class="modal" style="max-width:620px">
+    <div class="modal-h">
+      <h3 id="factTitle">事实检查</h3>
+      <button class="btn btn-sm" data-close="mFact">关闭</button>
+    </div>
+    <div class="modal-b" style="max-height:66vh;overflow:auto">
+      <p style="margin:0 0 14px;color:var(--muted);font-size:12.5px;line-height:1.65">
+        这里列出的是<strong>还没有依据</strong>的内容。系统只能检查"有没有来源"，
+        <strong>不能判断内容是否真实</strong>——最后一道关还是你自己。
+      </p>
+      <div id="factStat" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px"></div>
+      <div id="factBody"></div>
+    </div>
+    <div class="modal-f">
+      <span style="flex:1;font-size:12px;color:var(--muted);align-self:center">
+        标记为"假设"或"未验证"也是合格答案，不必强行编数据
+      </span>
+      <button class="btn btn-p" id="factDone">知道了</button>
+    </div>
+  </div>
+</div>
+
 <script src="src/renderer.js"></script>
+<script src="src/fact-core.js"></script>
 <script src="src/role-kit.js"></script>
+<script src="src/flow-engine.js"></script>
+<script src="src/fact-panel.js"></script>
 <script src="src/wizard-engine.js"></script>
 <script src="src/inline-edit.js"></script>
 <script src="vendor/html2pdf.bundle.min.js"></script>
 <script>
 (function(){
 'use strict';
-var R=window.Renderer, WZ=window.Wizard, IE=window.InlineEdit;
+var R=window.Renderer, IE=window.InlineEdit;
+var FC=window.FactCore, FL=window.Flow, FP=window.FactPanel;
 
-var LS_P='pf.profile.v3', LS_C='pf.ai.v3', LS_H='pf.hist.v3';
+var LS_P='pf.profile.v3', LS_C='pf.ai.v3', LS_S='pf.session.v3';
 var LS_OK=(function(){try{localStorage.setItem('__t','1');localStorage.removeItem('__t');return true}catch(e){return false}})();
 function load(k,d){if(!LS_OK)return d;try{var s=localStorage.getItem(k);return s?JSON.parse(s):d}catch(e){return d}}
 
 var state={
-  profile: load(LS_P,null)||R.emptyProfile(),
+  profile: null,
+  session: null,
   cfg: load(LS_C,null),
-  hist: load(LS_H,[])||[],
   step: null,
   answer: null,
+  outcome: 'answered',
   editMode: false,
   linkResult: null,
 };
-if(!state.profile.meta||state.profile.meta.version!==2) state.profile=R.emptyProfile();
+
+/* 载入 + 迁移（v2 → v3，幂等） */
+(function initData(){
+  var raw=load(LS_P,null);
+  var mig=FC.migrate(raw||{});
+  state.profile=mig.profile;
+  state.session=load(LS_S,null)||FL.emptySession();
+  if(!Array.isArray(state.session.answers))state.session=FL.emptySession();
+})();
 
 function $(s,r){return (r||document).querySelector(s)}
 function $$(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s))}
-function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;')}
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
 function toast(m,err){var t=$('#toast');t.innerHTML='<span class="dot"></span>'+esc(m);
   t.classList.toggle('err',!!err);t.classList.add('on');clearTimeout(t._t);
   t._t=setTimeout(function(){t.classList.remove('on')},2400)}
 function persist(){if(!LS_OK)return;try{
   localStorage.setItem(LS_P,JSON.stringify(state.profile));
-  localStorage.setItem(LS_H,JSON.stringify(state.hist.slice(-60)));
+  localStorage.setItem(LS_S,JSON.stringify(state.session));
 }catch(e){}}
+
+/* ============ 事实检查 ============ */
+function refreshFactCount(){
+  var n=FC.pendingCount(state.profile);
+  var el=$('#factCount');
+  if(el)el.textContent=n?('· '+n):'';
+  var b=$('#btnFact');
+  if(b)b.classList.toggle('btn-p',n>0);
+}
+function openFact(){
+  FP.open(state.profile,{
+    onFix:function(ref,patch,msg){
+      if(FP.applyFix(state.profile,ref,patch)){persist();refreshFactCount();renderPreview();toast(msg)}
+    }
+  });
+}
 
 var TOTAL=20;
 function stepIndex(s){
   if(!s)return TOTAL;
-  var map={profile:1,source:4,experience:8,project:13,skill:17,final:19,done:20};
+  var map={profile:1,source:4,experience:8,project:13,skill:17,final:19};
   return Math.min(map[s.phase]||1,TOTAL);
 }
 function phaseName(p){
-  return {profile:'了解你',source:'素材盘点',experience:'经历',project:'项目',skill:'技能与教育',final:'联系方式',done:'完成'}[p]||'';
+  return {profile:'了解你',source:'素材盘点',experience:'经历',project:'项目',skill:'技能与能力',final:'收尾'}[p]||'';
 }
 
 /* ============ 当前该问哪一题 ============ */
 function goNext(){
-  var s=WZ.nextStep(state.profile,{});
+  var s=FL.nextStep(state.profile,state.session);
   state.step=s;
+  state.outcome='answered';
   state.answer=defaultAnswer(s);
   state.linkResult=null;
   renderStep();
+  renderGaps();
 }
 function defaultAnswer(s){
   if(!s)return null;
   if(s.input==='multi')return [];
   if(s.input==='text'&&s.fields)return {};
   return '';
+}
+
+/* ============ 缺口清单（跳过的内容长期可见） ============ */
+function renderGaps(){
+  var gaps=FL.openGaps(state.session);
+  var box=$('#gapBox');
+  if(!box)return;
+  if(!gaps.length){box.innerHTML='';box.classList.remove('on');return}
+  box.classList.add('on');
+  box.innerHTML='<div class="gap-h">还有 <b>'+gaps.length+'</b> 项你跳过了，随时可以回来补：</div>'+
+    '<div class="chips">'+gaps.map(function(g){
+      return '<button class="chip gap-chip" data-gap="'+esc(g.stepId)+'">'+esc(g.label)+'</button>';
+    }).join('')+'</div>';
+  $$('[data-gap]',box).forEach(function(b){
+    b.onclick=function(){
+      var id=b.getAttribute('data-gap');
+      // 把这些步骤的 answer 记录删掉，让引擎重新问
+      state.session.answers=state.session.answers.filter(function(a){return a.stepId!==id});
+      persist();goNext();
+      toast('已回到「'+(FL.STEP_LABELS[id]||id)+'」，补完就会从清单消失');
+    };
+  });
 }
 
 /* ============ 渲染 ============ */
@@ -357,7 +509,16 @@ function renderStep(){
   h+='<div class="q-num">STEP '+idx+' · '+phaseName(s.phase)+'</div>';
   h+='<div class="q-title">'+esc(s.title)+'</div>';
   if(s.subtitle)h+='<div class="q-sub">'+esc(s.subtitle)+'</div>';
+  if(s.why)h+='<div class="q-why">为什么问这个：'+esc(s.why)+'</div>';
   if(s.tip)h+='<div class="q-tip">💡 '+esc(s.tip)+'</div>';
+
+  // 回填已有值（从缺口清单回来补时很有用）
+  var pre=(s.path&&s.path!=='')?getByPath(state.profile,s.path):null;
+  function val(k){
+    if(s.input!=='text'||!s.fields)return '';
+    if(pre&&typeof pre==='object'&&pre[k]!=null)return String(pre[k]);
+    return '';
+  }
 
   if(s.input==='choice'){
     h+='<div class="opts">';
@@ -386,11 +547,12 @@ function renderStep(){
     if(s.fields){
       h+='<div class="field-row">';
       s.fields.forEach(function(f){
-        h+='<input class="field" data-f="'+f.key+'" placeholder="'+esc(f.placeholder)+'">';
+        h+='<input class="field" data-f="'+f.key+'" value="'+esc(val(f.key))+'" placeholder="'+esc(f.placeholder)+'">';
       });
       h+='</div>';
     }else{
-      h+='<input class="field" id="textInp" placeholder="'+esc(s.placeholder||'')+'">';
+      var pv=(typeof pre==='string')?pre:'';
+      h+='<input class="field" id="textInp" value="'+esc(pv)+'" placeholder="'+esc(s.placeholder||'')+'">';
       if(s.options&&s.options.length){
         h+='<div class="chips" style="margin-top:10px">';
         s.options.forEach(function(o){
@@ -401,10 +563,11 @@ function renderStep(){
     }
   }
   else if(s.input==='longtext'){
-    h+='<textarea class="field" id="textInp" rows="5" placeholder="'+esc(s.placeholder||'')+'"></textarea>';
+    var lv=(typeof pre==='string')?pre:'';
+    h+='<textarea class="field" id="textInp" rows="5" placeholder="'+esc(s.placeholder||'')+'">'+esc(lv)+'</textarea>';
     if(s.example)h+='<div class="q-sub" style="margin-top:10px;font-size:12px">📝 '+esc(s.example)+'</div>';
     if(s.suggestions&&s.suggestions.length){
-      h+='<div class="sug-h">这个方向常见的做法，用到了就点一下加进去：</div><div class="chips">';
+      h+='<div class="sug-h">这个方向常见的做法，用到了就点一下加进去（不会自动算你做过）：</div><div class="chips">';
       s.suggestions.forEach(function(x){
         h+='<button class="chip" data-add="'+esc(x)+'">+ '+esc(x)+'</button>';
       });
@@ -420,15 +583,11 @@ function renderStep(){
     h+='</div>';
   }
   else if(s.input==='metric'){
-    h+='<input class="field" id="textInp" placeholder="'+esc(s.placeholder||'比如 41% → 55%')+'">';
-    if(s.metricHints&&s.metricHints.length){
-      h+='<div class="sug-h">这个岗位常用的指标：</div><div class="chips">';
-      s.metricHints.forEach(function(x){
-        h+='<button class="chip" data-hint="'+esc(x)+'">'+esc(x)+'</button>';
-      });
-      h+='</div>';
-    }
-    h+='<div class="chips" style="margin-top:8px"><button class="chip" data-skipmetric>暂时没有数字，跳过</button></div>';
+    var mv=(typeof pre==='string')?pre:'';
+    h+='<input class="field" id="textInp" value="'+esc(mv)+'" placeholder="'+esc(s.placeholder||'比如 41% → 55%')+'">';
+    h+='<div class="q-sub" style="margin-top:8px;font-size:12px;color:var(--warn)">'+
+       '没有数字就直接留空——系统不会替你生成一个。写"不知道"也不会变成指标。</div>';
+    h+='<div class="chips" style="margin-top:10px"><button class="chip" data-skipmetric>我没有可量化的数字</button></div>';
   }
   else if(s.input==='link'){
     h+='<input class="field" id="linkInp" placeholder="'+esc(s.placeholder||'https://…')+'">';
@@ -437,16 +596,28 @@ function renderStep(){
     h+='<div id="linkOut" style="margin-top:12px"></div>';
   }
   else if(s.input==='confirm'){
-    h+='<div class="q-sub" style="color:var(--ok)">✓ 可以导出了。</div>';
+    var led=FC.buildLedger(state.profile);
+    h+='<div class="q-sub">'+(led.items.length
+      ? '目前有 <b style="color:var(--warn)">'+led.items.length+'</b> 处内容还没有依据（其中 '+led.summary.unknown+' 处信息不足）。'
+      : '没有发现明显缺依据的内容。')+'</div>';
+    h+='<div class="chips" style="margin-top:6px"><button class="chip" id="btnFactInline">🛡 打开事实检查</button></div>';
+    h+='<div class="q-sub" style="margin-top:14px;font-size:12.5px">确认之后右侧就是可交付的作品集。'+
+       '标注"未验证"的地方会原样显示——这不是缺点，是诚实的证据。</div>';
   }
   h+='</div>';
 
   $('#wzBody').innerHTML=h;
   $('#wzBody').scrollTop=0;
-  $('#btnBack').disabled=state.hist.length===0;
+  $('#btnBack').disabled=state.session.answers.length===0;
   $('#btnSkip').style.visibility=s.skippable?'visible':'hidden';
   $('#btnNext').disabled=false;
   bindStep(s);
+}
+
+function getByPath(obj,path){
+  try{
+    return String(path).split('.').reduce(function(o,k){return o==null?undefined:o[k]},obj);
+  }catch(e){return undefined}
 }
 
 /* ============ 绑定 ============ */
@@ -540,8 +711,11 @@ function bindStep(s){
     };
   });
   $$('[data-skipmetric]',body).forEach(function(b){
-    b.onclick=function(){state.answer='__skip__';next()};
+    b.onclick=function(){state.answer='__skip__';state.outcome='skipped';next()};
   });
+
+  var bfi=$('#btnFactInline');
+  if(bfi)bfi.onclick=function(){openFact()};
 
   var bf=$('#btnFetch');
   if(bf){
@@ -549,22 +723,38 @@ function bindStep(s){
       var url=$('#linkInp').value.trim();
       if(!url){toast('先粘贴一个链接',true);return}
       bf.textContent='读取中…';bf.disabled=true;
-      WZ.readLink(url).then(function(res){
-        state.linkResult=res;state.answer=url;
-        var ok=res.source==='github'||res.source==='proxy';
-        $('#linkOut').innerHTML='<div class="link-card">'+
-          '<div class="lc-h">'+(ok?'✓ 已读取':'⚠ 只拿到域名')+'</div>'+
-          '<div class="lc-t">'+esc(res.title||'（无标题）')+'</div>'+
-          (res.desc?'<div class="lc-d">'+esc(res.desc.slice(0,300))+'</div>':'')+
-          (res.note?'<div class="lc-note">'+esc(res.note)+'</div>':'')+'</div>';
-        toast(ok?'已读到页面信息':'仅拿到域名，可手动补充');
-      }).catch(function(e){
-        toast('读取失败：'+(e.message||''),true);
-      }).then(function(){bf.textContent='🔗 读取这个链接';bf.disabled=false});
+      var GH=/github\.com\/([^\/#?]+)\/([^\/#?]+)/i.exec(url);
+      if(!GH){
+        // 只保留 GitHub：不把用户数据发给任意第三方代理
+        bf.textContent='🔗 读取这个链接';bf.disabled=false;
+        toast('目前只自动读取 GitHub 仓库；其他链接请手写一句说明',true);
+        $('#linkOut').innerHTML='<div class="link-card"><div class="lc-h">⚠ 不支持自动读取</div>'+
+          '<div class="lc-note">为避免把你的链接发给第三方代理，本产品只对 GitHub 仓库做自动解析。请手动补一句这个链接里是什么。</div></div>';
+        return;
+      }
+      fetch('https://api.github.com/repos/'+GH[1]+'/'+GH[2])
+        .then(function(r){if(!r.ok)throw new Error('仓库不存在或不可访问');return r.json()})
+        .then(function(j){
+          var desc=[j.description,j.language?('主要语言：'+j.language):'',
+            j.stargazers_count?('★ '+j.stargazers_count):''].filter(Boolean).join(' · ');
+          $('#linkOut').innerHTML='<div class="link-card">'+
+            '<div class="lc-h">✓ 已读取（来自 GitHub 公开接口）</div>'+
+            '<div class="lc-t">'+esc(j.name||GH[2])+'</div>'+
+            (desc?'<div class="lc-d">'+esc(desc)+'</div>':'')+
+            '<div class="lc-note">这只是仓库的公开信息，不会自动当成你的项目描述。请自己写问题与做法。</div></div>';
+          var t=$('#textInp');
+          if(t&&!t.value){
+            t.value='https://github.com/'+GH[1]+'/'+GH[2];
+            state.answer=t.value;
+          }
+          toast('已读到仓库信息');
+        })
+        .catch(function(e){toast('读取失败：'+(e.message||''),true)})
+        .then(function(){bf.textContent='🔗 读取这个链接';bf.disabled=false});
     };
   }
   var bn=$('#btnNoLink');
-  if(bn)bn.onclick=function(){state.answer='__skip__';next()};
+  if(bn)bn.onclick=function(){state.answer='__skip__';state.outcome='skipped';next()};
 }
 
 /* ============ 前进 / 后退 ============ */
@@ -574,25 +764,24 @@ function next(){
   var val=state.answer;
 
   if(!s.skippable&&isEmpty(val)&&s.input!=='confirm'){
-    toast('这项需要填一下',true);
+    toast('这项需要填一下，或者点「跳过」（跳过后还能回来补）',true);
     var f=$('#textInp')||$('#customInp');if(f)f.focus();
     return;
   }
-
-  // 链接补充
-  if(s.id==='proj.link'&&state.linkResult&&state.linkResult.suggested&&val!=='__skip__'){
-    var cur=state.profile.projects[state.profile.projects.length-1];
-    var sg=state.linkResult.suggested;
-    if(cur){
-      if(sg.name&&!cur.name)cur.name=sg.name;
-      if(sg.context&&!cur.context)cur.context=sg.context;
-      if(sg.tags&&sg.tags.length)cur.tags=(cur.tags||[]).concat(sg.tags);
-    }
+  if(s.input==='confirm'){
+    // review 步骤：写实标记后结束
+    state.profile=FL.applyAnswer(state.profile,s,'','answered');
+    state.session=FL.record(state.session,s,'answered',s.path);
+    persist();goNext();
+    return;
   }
 
-  state.hist.push({profile:JSON.parse(JSON.stringify(state.profile))});
-  state.profile=WZ.applyAnswer(state.profile,s,val,{});
-  persist();renderPreview();goNext();
+  var outcome=state.outcome||'answered';
+  if(val==='__skip__'){val='';outcome='skipped'}
+
+  state.profile=FL.applyAnswer(state.profile,s,val,outcome);
+  state.session=FL.record(state.session,s,outcome,s.path);
+  persist();renderPreview();refreshFactCount();goNext();
 }
 
 function isEmpty(v){
@@ -603,10 +792,10 @@ function isEmpty(v){
 }
 
 function back(){
-  if(!state.hist.length)return;
-  var last=state.hist.pop();
-  state.profile=last.profile;
-  persist();renderPreview();goNext();
+  var u=FL.undo(state.profile,state.session);
+  if(!u.ok){toast('已经在第一步了');return}
+  state.profile=u.profile;state.session=u.session;
+  persist();renderPreview();refreshFactCount();goNext();
   toast('已回到上一步');
 }
 
@@ -672,12 +861,28 @@ function dl(name,content){
   setTimeout(function(){URL.revokeObjectURL(a.href)},2000);
 }
 function fname(ext){return ((state.profile.hero.name||'作品集').replace(/[\\/:*?"<>|]/g,''))+'·作品集.'+ext}
-function exportHTML(){dl(fname('html'),R.renderDocument(state.profile));toast('网页已导出')}
+function exportHTML(){
+  var led=FC.buildLedger(state.profile);
+  if(led.items.length){
+    if(!confirm('还有 '+led.items.length+' 处内容没有依据（其中 '+led.summary.unknown+
+      ' 处信息不足）。导出后这些会原样出现在作品集里，只标注"未验证/待补充"。\n\n建议先做一次事实检查。现在就直接导出吗？')){
+      openFact();return;
+    }
+  }
+  dl(fname('html'),R.renderDocument(state.profile));toast('网页已导出');
+}
 
 function showExp(t,m,p){$('#mExport').classList.add('on');$('#expTitle').textContent=t;$('#expMsg').textContent=m;$('#expBar').style.width=(p||5)+'%'}
 function hideExp(){$('#mExport').classList.remove('on')}
 
 function exportPDF(){
+  var led=FC.buildLedger(state.profile);
+  if(led.items.length){
+    if(!confirm('还有 '+led.items.length+' 处内容没有依据（其中 '+led.summary.unknown+
+      ' 处信息不足）。PDF 里会原样显示"未验证/待补充"标记。\n\n建议先做一次事实检查。现在就直接导出吗？')){
+      openFact();return;
+    }
+  }
   var html=R.renderDocument(state.profile,{motion:false});
   var f=$('#pvFrame'),d=f.contentDocument||f.contentWindow.document;
   showExp('正在生成 PDF…','正在渲染页面…',15);
@@ -716,30 +921,35 @@ function updatePill(){
 }
 
 function init(){
-  renderThemeUI();renderPreview(true);updatePill();goNext();
+  renderThemeUI();renderPreview(true);updatePill();refreshFactCount();goNext();
 
   $('#btnNext').onclick=next;
   $('#btnBack').onclick=back;
-  $('#btnSkip').onclick=function(){state.answer='__skip__';next()};
+  $('#btnSkip').onclick=function(){state.answer='__skip__';state.outcome='skipped';next()};
   $('#btnEdit').onclick=toggleEdit;
+  $('#btnFact').onclick=openFact;
+  $('#factDone').onclick=function(){$('#mFact').classList.remove('on')};
   $('#btnExportHtml').onclick=exportHTML;
   $('#btnExportPdf').onclick=exportPDF;
 
   $('#btnSample').onclick=function(){
     if(state.profile.hero.name&&!confirm('载入示例会覆盖当前内容，继续？'))return;
-    state.profile=R.sampleProfile();state.hist=[];persist();
-    renderPreview(true);goNext();toast('已载入示例');
+    state.profile=FC.migrate(R.sampleProfile()).profile;
+    state.session=FL.emptySession();
+    persist();renderPreview(true);refreshFactCount();goNext();toast('已载入示例（示例里的数字都是编的，仅用于看样式）');
   };
   $('#btnReset').onclick=function(){
     if(!confirm('清空所有内容重新开始？'))return;
-    state.profile=R.emptyProfile();state.hist=[];persist();
-    renderPreview(true);goNext();
+    state.profile=FC.migrate({}).profile;
+    state.session=FL.emptySession();
+    persist();renderPreview(true);refreshFactCount();goNext();
   };
 
   $('#btnSettings').onclick=function(){
     if(state.cfg){$('#cfgBase').value=state.cfg.baseUrl||'';$('#cfgKey').value=state.cfg.apiKey||'';$('#cfgModel').value=state.cfg.model||''}
     $('#mSettings').classList.add('on');
   };
+  $('#btnPrivacy').onclick=function(){$('#mPrivacy').classList.add('on')};
   $('#btnCfgSave').onclick=function(){
     var b=$('#cfgBase').value.trim(),k=$('#cfgKey').value.trim(),m=$('#cfgModel').value.trim();
     if(!b||!k){state.cfg=null;if(LS_OK)localStorage.removeItem(LS_C);toast('已切回本地模式')}
@@ -771,9 +981,30 @@ function init(){
     };
   });
 
+  // 隐私：删除全部本地数据（含 API Key）
+  var bwipe=$('#btnWipe');
+  if(bwipe)bwipe.onclick=function(){
+    if(!confirm('这会删除本机保存的作品集内容、问答记录和 API Key，且无法恢复。确定？'))return;
+    try{
+      localStorage.removeItem(LS_P);localStorage.removeItem(LS_S);localStorage.removeItem(LS_C);
+      localStorage.removeItem('pf.profile.v3');localStorage.removeItem('pf.hist.v3');
+    }catch(e){}
+    state.profile=FC.migrate({}).profile;state.session=FL.emptySession();state.cfg=null;
+    updatePill();renderPreview(true);refreshFactCount();goNext();
+    toast('本机数据已全部删除');
+  };
+
+  // 离开前提醒（有内容时）
+  window.addEventListener('beforeunload',function(e){
+    if(state.profile&&state.profile.hero&&state.profile.hero.name){
+      e.preventDefault();e.returnValue='';
+    }
+  });
+
   document.addEventListener('keydown',function(e){
     if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();next()}
     if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='e'){e.preventDefault();toggleEdit()}
+    if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();openFact()}
   });
 }
 
@@ -798,9 +1029,10 @@ function freeParse(text){
     }
   }
 
-  var sents=WZ.splitDetail(text);
+  var sents=FL.splitDetail(text);
   if(sents.length){
-    var e=WZ.emptyExp();
+    var e={company:'',role:'',start:'',end:'',current:false,highlights:[],metrics:[],tags:[],
+      contribution:{self:'unknown',team:'',others:'',ai:'',note:''}};
     var org=text.match(/在\s*([\u4e00-\u9fa5A-Za-z0-9·]{2,20})\s*(?:实习|工作|任职|做)/);
     if(org)e.company=org[1];
     var role=text.match(/(?:担任|做|是)\s*([\u4e00-\u9fa5A-Za-z]{2,14}(?:经理|实习生|专员|分析师|工程师|设计师|助理|运营|产品))/);
@@ -808,18 +1040,18 @@ function freeParse(text){
     var tm=text.match(/(\d{4}[.\-\/]\d{1,2})\s*[—\-~至到]\s*(\d{4}[.\-\/]\d{1,2}|至今)/);
     if(tm){e.start=tm[1];if(tm[2]==='至今')e.current=true;else e.end=tm[2]}
     e.highlights=sents.slice(0,5);
-    e.__detailDone=true;
-    var mt=WZ.parseMetricInput(text);
-    if(mt.length)e.metrics=mt;
+    var mt=FC.parseMetric(text);
+    // 自由输入解析出来的数字一律标 claim，不因为"是从长文本抽出来的"就变成事实
+    if(mt.ok)e.metrics=mt.metrics;
     p.experiences.push(e);
   }
 
   p.meta.stage=p.meta.stage||'已说明';
   p.meta.srcScanned=true;p.meta.expDone=true;p.meta.projDone=true;
   p.meta.skillDone=true;p.meta.eduDone=true;p.meta.contactDone=true;
-  p.metrics=WZ.deriveTopMetrics(p);
-  persist();renderPreview();goNext();
-  toast('已解析并填入');
+  p=FC.migrate(p).profile;
+  persist();renderPreview();refreshFactCount();goNext();
+  toast('已解析并填入——里面每一句都还需你确认');
 }
 
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);

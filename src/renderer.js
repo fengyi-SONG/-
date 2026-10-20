@@ -57,8 +57,31 @@
       .map(function (p) { return '<p>' + esc(p) + '</p>'; }).join('');
   }
 
-  function dateRange(a, b, cur) {
-    var s = (a || '').trim();
+  /* ---------------- URL / 颜色 安全 ---------------- */
+
+  /**
+   * 只放行 http / https / mailto / tel。
+   * esc() 只解决"文本转义"，不解决"协议危险"——javascript: / data: 会直接执行。
+   * 这是导出物，用户会发给 HR，必须在这里拦住。
+   */
+  function safeUrl(u) {
+    var s = String(u == null ? '' : u).trim();
+    if (!s) return '';
+    // 相对路径与锚点放行
+    if (/^[#\/]/.test(s)) return s;
+    if (/^(https?:|mailto:|tel:)/i.test(s)) return s;
+    // 没有协议头的裸域名，补 https
+    if (/^[\w.-]+\.[a-z]{2,}(\/|$)/i.test(s)) return 'https://' + s;
+    return '';
+  }
+
+  /** 只接受 #rgb / #rrggbb，其余一律回落默认色，防止 CSS 注入 */
+  function safeColor(c, fallback) {
+    var s = String(c == null ? '' : c).trim();
+    return /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i.test(s) ? s : (fallback || '#2f5eff');
+  }
+
+  function dateRange(a, b, cur) {    var s = (a || '').trim();
     var e = cur ? '至今' : (b || '').trim();
     if (s && e) return esc(s) + '<span class="dash">–</span>' + esc(e);
     return esc(s || e);
@@ -130,7 +153,7 @@
 
   function buildCSS(p) {
     var t = THEMES[p.meta.theme] || THEMES.aurora;
-    var accent = p.meta.accent || '#2f5eff';
+    var accent = safeColor(p.meta.accent);
     var isDark = p.meta.theme === 'noir';
     var motion = p.meta.showMotion !== false;
 
@@ -310,6 +333,31 @@ img{max-width:100%;display:block;}
 .foot-big em{font-style:normal;color:var(--accent);}
 .foot-meta{font-size:12.5px;color:var(--muted);text-align:right;line-height:1.7;}
 
+/* ============ FACT STATE ============ */
+.fstate{display:inline-block;font-size:10.5px;line-height:1;padding:3px 7px;border-radius:100px;
+  margin-left:8px;vertical-align:middle;font-weight:500;letter-spacing:0;
+  border:1px solid;white-space:nowrap;}
+.bd-assume{color:#9a5b00;border-color:#e8c894;background:#fdf6e8;}
+.bd-plan{color:#1d5fa8;border-color:#b9d3ef;background:#eef5fc;}
+.bd-unknown{color:#8a4a4a;border-color:#e6c1c1;background:#fdf1f1;}
+.proj-users{font-size:13px;color:var(--muted);margin-bottom:14px;padding:9px 13px;
+  background:var(--soft);border-radius:9px;line-height:1.6;}
+.proj-users .pu-k{color:var(--accent);font-weight:600;margin-right:7px;}
+.pm-src{font-size:10.5px;color:var(--muted);margin-top:5px;opacity:.85;}
+.contrib{border:1px solid var(--line);border-radius:11px;padding:14px 16px;margin-top:20px;background:var(--soft);}
+.contrib-k{font-size:11px;letter-spacing:.11em;text-transform:uppercase;color:var(--accent);
+  font-weight:600;margin-bottom:9px;}
+.contrib-row{display:grid;grid-template-columns:88px 1fr;gap:12px;font-size:13px;line-height:1.6;padding:3px 0;}
+.contrib-row .ck{color:var(--muted);}
+.contrib-row .cv{color:var(--text);}
+.proj-ev{margin-top:18px;padding:14px 16px;border:1px dashed var(--line);border-radius:11px;}
+.proj-ev .ev-k{font-size:11px;letter-spacing:.11em;text-transform:uppercase;color:var(--muted);
+  font-weight:600;margin-bottom:8px;}
+.proj-ev ul{display:grid;gap:5px;}
+.proj-ev li{font-size:13px;color:var(--muted);padding-left:15px;position:relative;line-height:1.6;}
+.proj-ev li::before{content:"";position:absolute;left:0;top:.68em;width:5px;height:5px;
+  border-radius:50%;background:var(--accent);opacity:.6;}
+
 /* ============ EMPTY ============ */
 .empty-ph{border:1px dashed var(--line);border-radius:var(--radius);padding:38px;
   text-align:center;color:var(--muted);font-size:13.5px;}
@@ -396,8 +444,10 @@ ${motion ? `
     if (h.phone) contacts.push('<span class="contact">' + ICONS.phone + esc(h.phone) + '</span>');
     (h.links || []).forEach(function (l) {
       if (!l || !l.url) return;
-      var label = l.label || l.url.replace(/^https?:\/\//, '').replace(/\/$/, '');
-      contacts.push('<a class="contact" href="' + esc(l.url) + '" target="_blank" rel="noopener">' +
+      var href = safeUrl(l.url);
+      if (!href) return;
+      var label = l.label || String(l.url).replace(/^https?:\/\//, '').replace(/\/$/, '');
+      contacts.push('<a class="contact" href="' + esc(href) + '" target="_blank" rel="noopener noreferrer">' +
         ICONS.link + esc(label) + '</a>');
     });
 
@@ -480,36 +530,91 @@ ${motion ? `
       secHead('Experience', '经历', '按时间倒序') + body + '</div></section>';
   }
 
+  /* ---------------- 事实状态徽标 ---------------- */
+
+  /**
+   * 事实状态徽标。只在"不是已确认事实"时显示，
+   * 因为招聘方看到"已确认"没有信息量，看到"这是假设"才有。
+   */
+  var BADGE_TEXT = {
+    assumption: { t: '未验证', cls: 'bd-assume', tip: '这是作者当时的判断，还没有证据支持' },
+    plan: { t: '计划中', cls: 'bd-plan', tip: '这是计划要做的，不是已经完成的' },
+    unknown: { t: '待补充', cls: 'bd-unknown', tip: '这一项作者本人也还不确定' },
+    claim: { t: '', cls: '' },
+    fact: { t: '', cls: '' },
+    evidence: { t: '', cls: '' },
+  };
+
+  function badge(status) {
+    var b = BADGE_TEXT[status];
+    if (!b || !b.t) return '';
+    return '<span class="fstate ' + b.cls + '" title="' + esc(b.tip) + '">' + esc(b.t) + '</span>';
+  }
+
+  function renderContribution(c) {
+    if (!c) return '';
+    var rows = [];
+    if (c.self === 'solo') rows.push(['我独立完成', '全部']);
+    else if (c.self && c.self !== 'unknown') rows.push(['我负责', c.self]);
+    if (c.team) rows.push(['团队协作', c.team]);
+    if (c.others) rows.push(['他人支持', c.others]);
+    if (c.ai) rows.push(['AI 辅助', c.ai]);
+    if (!rows.length) return '';
+    return '<div class="contrib"><div class="contrib-k">个人贡献</div>' + rows.map(function (r) {
+      return '<div class="contrib-row"><span class="ck">' + esc(r[0]) + '</span>' +
+        '<span class="cv">' + esc(r[1]) + '</span></div>';
+    }).join('') + '</div>';
+  }
+
   function renderProjects(p) {
     var list = (p.projects || []).filter(function (x) { return x && (x.name || x.problem || x.approach); });
     if (!list.length) return '';
     var body = list.map(function (x) {
+      var f = x.fields || {};
+      var st = function (k) { return (f[k] && f[k].status) || 'claim'; };
       var rows = [];
-      if (x.problem) rows.push(['问题', x.problem]);
-      if (x.approach) rows.push(['做法', x.approach]);
-      if (x.result) rows.push(['结果', x.result]);
+      if (x.problem) rows.push(['问题', x.problem, st('problem')]);
+      if (x.analysis) rows.push(['分析', x.analysis, st('problem')]);
+      if (x.approach) rows.push(['做法', x.approach, st('approach')]);
+      if (x.decision && x.decision.alternatives) rows.push(['取舍', '放弃的方案：' + x.decision.alternatives, 'claim']);
+      if (x.result) rows.push(['结果', x.result, st('result')]);
+      if (x.limitations && x.limitations.text) rows.push(['局限', x.limitations.text, 'claim']);
+      if (x.nextStep && x.nextStep.text) rows.push(['下一步', x.nextStep.text, 'plan']);
       var ms = hasMetrics(x.metrics);
+      var ev = (x.evidenceList || []).filter(Boolean);
 
       return '<article class="proj reveal">' +
-        (x.cover ? '<img class="proj-cover" src="' + esc(x.cover) + '" alt="">' : '') +
+        (safeUrl(x.cover) ? '<img class="proj-cover" src="' + esc(safeUrl(x.cover)) + '" alt="">' : '') +
         '<div class="proj-in">' +
         '<div class="proj-top"><h3 class="proj-name">' + esc(x.name || '') + '</h3>' +
         (x.period ? '<span class="proj-period">' + esc(x.period) + '</span>' : '') + '</div>' +
         (x.role ? '<div class="proj-role">' + esc(x.role) + '</div>' : '') +
+        (x.users && (x.users.who || x.users.scale)
+          ? '<div class="proj-users"><span class="pu-k">面向</span>' +
+            esc([x.users.who, x.users.scale].filter(Boolean).join(' · ')) +
+            (x.users.status === 'unknown' ? ' ' + badge('unknown') : '') + '</div>'
+          : '') +
         (x.context ? '<div class="proj-ctx">' + nl2p(x.context) + '</div>' : '') +
         (rows.length ? '<div class="psr">' + rows.map(function (r) {
           return '<div class="psr-row"><div class="psr-k">' + esc(r[0]) + '</div>' +
-            '<div class="psr-v">' + nl2p(r[1]) + '</div></div>';
+            '<div class="psr-v">' + nl2p(r[1]) + badge(r[2]) + '</div></div>';
         }).join('') + '</div>' : '') +
+        renderContribution(x.contribution) +
         (ms.length ? '<div class="proj-metrics">' + ms.map(function (m) {
           return '<div class="pm"><div class="pm-v">' + esc(m.value) + '</div>' +
-            '<div class="pm-l">' + esc(m.label) + '</div></div>';
+            '<div class="pm-l">' + esc(m.label) + '</div>' +
+            (m.status && m.status !== 'claim' && m.status !== 'fact' ? badge(m.status) : '') +
+            (m.status === 'claim' ? '<div class="pm-src">' + (m.source ? '来源：' + esc(m.source) : '来源待补') + '</div>' : '') +
+            '</div>';
         }).join('') + '</div>' : '') +
+        (ev.length ? '<div class="proj-ev"><div class="ev-k">证据材料</div><ul>' + ev.map(function (e) {
+          return '<li>' + esc(e) + '</li>';
+        }).join('') + '</ul></div>' : '') +
         '<div class="proj-foot">' +
         ((x.tags || []).length ? '<div class="tags" style="margin:0">' + x.tags.map(function (t) {
           return '<span class="tag">' + esc(t) + '</span>';
         }).join('') + '</div>' : '') +
-        (x.link ? '<a class="proj-link" href="' + esc(x.link) + '" target="_blank" rel="noopener">查看项目' + ICONS.arrow + '</a>' : '') +
+        (safeUrl(x.link) ? '<a class="proj-link" href="' + esc(safeUrl(x.link)) + '" target="_blank" rel="noopener noreferrer">查看项目' + ICONS.arrow + '</a>' : '') +
         '</div></div></article>';
     }).join('');
     return '<section class="sec"><div class="wrap">' +
@@ -595,7 +700,7 @@ ${motion ? `
     var p = JSON.parse(JSON.stringify(profile || emptyProfile()));
     var title = (p.hero && p.hero.name) ? p.hero.name + ' · 作品集' : '我的作品集';
     var desc = [p.hero && p.hero.title, p.hero && p.hero.tagline].filter(Boolean).join(' — ');
-    var accent = p.meta.accent || '#2f5eff';
+    var accent = safeColor(p.meta.accent);
 
     return '<!DOCTYPE html>\n<html lang="zh-CN">\n<head>\n' +
       '<meta charset="utf-8">\n' +
@@ -702,6 +807,8 @@ ${motion ? `
     sampleProfile: sampleProfile,
     buildCSS: buildCSS,
     THEMES: THEMES,
+    safeUrl: safeUrl,
+    safeColor: safeColor,
     esc: esc,
     nl2p: nl2p,
   };
