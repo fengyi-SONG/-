@@ -1,0 +1,9 @@
+node_modules/
+.preview/
+.legacy/
+legacy/
+_test.js
+.workbuddy/
+*.png
+.DS_Store
+Thumbs.db
