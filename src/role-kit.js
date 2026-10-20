@@ -17,12 +17,71 @@
 
   var KITS = {
     '产品经理': {
-      aliases: ['产品', 'pm', '产品经理', '产品助理', '产品实习生', 'product'],
+      aliases: ['产品', 'pm', '产品经理', '产品助理', '产品实习生', 'product', 'ai产品经理', 'ai 产品经理'],
       tools: ['Axure', 'Figma', '墨刀', 'MasterGo', 'Jira', 'Confluence', '飞书多维表格', 'Xmind', 'ProcessOn', 'Mixpanel', '神策', 'GrowingIO', 'SQL', 'Tableau'],
       methods: ['需求调研与访谈', '用户画像', '竞品分析', 'PRD 撰写', '原型设计', '敏捷开发 / Scrum', 'MVP 验证', 'A/B 实验设计', '数据埋点设计', '用户旅程地图'],
       metrics: ['日活 / 月活（DAU / MAU）', '留存率', '转化率', '页面访问深度', '任务完成率', 'NPS', '需求上线周期'],
       tasks: ['写需求文档并跟进开发上线', '做竞品分析', '设计原型和交互流程', '分析用户数据找问题', '和设计、开发对齐排期'],
       starter: '没有实习经历？做一个"产品分析作业"：挑一个你常用的 App，写一份 3 页的产品分析（用户是谁 / 解决了什么问题 / 有什么可以改进），这本身就是可展示的项目。',
+      /* T3：真做一次的练习路径（flow-engine pickPractice 读取） */
+      practice: {
+        title: '一份完整的产品分析报告',
+        duration: '约 1 周',
+        output: '3 页分析报告（PDF 或在线文档）',
+        steps: ['挑一个你每天在用的 App', '写清它为谁解决什么问题', '找出 2 个你观察到的具体问题', '给每个问题提改进方案并说明取舍', '找 3 个同学试用并记录反馈'],
+        evidence: ['报告本身', '同学的试用反馈记录', '你截图标注的问题界面'],
+      },
+      /* T3：方法论卡——每卡 7 问。flow-engine 在 analysis/approach/metrics 步骤按情境推荐 */
+      playbooks: [
+        {
+          id: 'funnel',
+          name: '漏斗定位法',
+          when: ['data'],
+          problem: '用户"流失了"但不知道卡在哪一步。',
+          scope: '有可分步统计的行为数据（后台埋点、报表、哪怕手工记录的数字）。',
+          precondition: '你能把目标行为拆成先后步骤，且每一步有数字。',
+          how: '把行为拆成 步骤→步骤→步骤，算每步的转化率；转化率断崖最大的那一步就是问题所在；再用录屏或访谈解释"为什么断在这里"。',
+          evidence: '每一步的转化率表格 + 断崖步骤的用户访谈/录屏记录。',
+          notFor: '没有分步数据时硬套漏斗——那就先用访谈定位，别编数字。',
+          noData: '没有数据时：手工记录。比如让 5 个同学走一遍流程，你记下每人卡在哪步。5 个人的记录也是真数据，只要如实写样本量。',
+        },
+        {
+          id: 'interview',
+          name: '小样本访谈法',
+          when: ['interview', 'survey', 'self', 'desk', 'none'],
+          problem: '只有猜测，不知道用户的真实想法。',
+          scope: '任何阶段。这是最便宜也最被低估的方法。',
+          precondition: '能找到 3-5 个目标用户（同学、社群都行）。',
+          how: '问"你上次做 X 是什么情况"，别问"你会不会用 Y"（后者只会得到礼貌的假话）。记下原话，找重复出现的说法。',
+          evidence: '访谈记录（时间+对象+关键原话）。重复出现 2 次以上的说法才值得写进结论。',
+          notFor: '需要量化结论时——3 个人的说法不能代表"70% 的用户"。',
+          noData: '访谈本身就是取证。哪怕只聊了 1 个人，如实写"访谈了 1 人，他的说法是……"也比空口判断强。',
+        },
+        {
+          id: 'tradeoff',
+          name: '方案取舍法',
+          when: [],
+          problem: '想到了一个方案，但说不清为什么选它。',
+          scope: '写 approach（方案设计）时使用。',
+          precondition: '你能列出至少 2 个可行方案。',
+          how: '列 2-3 个方案 → 给每个方案写"代价是什么"（开发量/合规/体验/风险）→ 写清你放弃了哪个、为什么。放弃的理由往往比选择的理由更有说服力。',
+          evidence: '一张方案对比（哪怕是三行文字），和被放弃方案的具体死因。',
+          notFor: '只有一个方案可走时（比如合规硬性要求）——直接说"没得选"也是好答案。',
+          noData: '取舍不需要数据，需要的是把"为什么不选另一个"写出来。',
+        },
+        {
+          id: 'metric',
+          name: '指标口径法',
+          when: [],
+          problem: '有数字，但不知道该报哪个、怎么说清它。',
+          scope: '写 metrics（量化结果）时使用。',
+          precondition: '数字有明确出处（后台、报表、自己统计的记录）。',
+          how: '每个数字回答三件事：口径是什么（注册数还是活跃数）、时间范围（哪一周/哪一个月）、和谁比（比上一版/比之前）。三件事说不清一个，这个数字就不要写。',
+          evidence: '数字截图或统计记录本身，能当场打开给人看。',
+          notFor: '来源说不清的数字——宁可删掉，说"我没有可靠数据"。',
+          noData: '没有数字就留空，用一句话写定性结果："没有量化数据，但 5 个测试用户都完成了任务"。这是诚实的写法。',
+        },
+      ],
     },
     '运营': {
       aliases: ['运营', '内容运营', '用户运营', '活动运营', '社群运营', '新媒体', '增长'],
@@ -128,6 +187,41 @@
   }
 
   /**
+   * T3：按情境推荐方法论卡。
+   * stepId: analysis | approach | metrics
+   * evidenceAnswers: 模块 B（问题证据）用户勾选的 value 数组，用于 analysis 卡的选择
+   * 返回 card 对象或 null（无匹配/非 PM kit）。
+   */
+  function playbook(stepId, evidenceAnswers, roleText) {
+    var r = match(roleText || '产品经理');
+    var cards = r.kit.playbooks;
+    if (!cards || !cards.length) return null;
+    var ev = evidenceAnswers || [];
+    if (stepId === 'analysis') {
+      for (var i = 0; i < cards.length; i++) {
+        var c = cards[i];
+        if (c.id === 'funnel' && ev.indexOf('data') !== -1) return c;
+      }
+      for (var j = 0; j < cards.length; j++) {
+        var c2 = cards[j];
+        if (c2.id === 'interview' && (c2.when || []).some(function (w) { return ev.indexOf(w) !== -1; })) return c2;
+      }
+      return cards.filter(function (x) { return x.id === 'interview'; })[0] || null;
+    }
+    if (stepId === 'approach') return cards.filter(function (x) { return x.id === 'tradeoff'; })[0] || null;
+    if (stepId === 'metrics') return cards.filter(function (x) { return x.id === 'metric'; })[0] || null;
+    return null;
+  }
+
+  /**
+   * T3：校验方法论卡结构完整性（每卡必须有全部 7 问），测试用。
+   */
+  function playbookOk(card) {
+    var KEYS = ['name', 'problem', 'scope', 'precondition', 'how', 'evidence', 'notFor', 'noData'];
+    return !!card && KEYS.every(function (k) { return typeof card[k] === 'string' && card[k].length > 0; });
+  }
+
+  /**
    * 给某个岗位推荐的指标选项（追问数字时展示）
    */
   function metricHints(roleText, n) {
@@ -146,6 +240,8 @@
     match: match,
     metricHints: metricHints,
     allRoles: allRoles,
+    playbook: playbook,
+    playbookOk: playbookOk,
     KITS: KITS,
     GENERIC: GENERIC,
   };

@@ -280,9 +280,19 @@
     });
   }
 
+  /** T3：按当前项目取方法论卡并附到步骤上 */
+  function withPlaybook(def, profile, stepId) {
+    var p = profile || {};
+    var idx = p.meta && p.meta.curProj != null ? p.meta.curProj : 0;
+    var proj = (p.projects || [])[idx];
+    var card = RK ? RK.playbook(stepId, proj && proj.evidence, p.hero && p.hero.title) : null;
+    if (card) def.card = card;
+    return def;
+  }
+
   /** 模块 C：问题分析 */
-  function stepAnalysis() {
-    return step('analysis', 'project', {
+  function stepAnalysis(profile) {
+    var def = step('analysis', 'project', {
       title: '你怎么分析这个问题的原因？',
       subtitle: '说清你排除了哪些可能，最后为什么认定是某个原因。',
       why: '这里暴露的是你的分析路径。只写结论的人，会被追问到说不出来。',
@@ -292,11 +302,12 @@
       skippable: false,
       targetPath: 'projects.{i}.analysis',
     });
+    return withPlaybook(def, profile, 'analysis');
   }
 
   /** 模块 D：方案设计 + 取舍 */
-  function stepApproach() {
-    return step('approach', 'project', {
+  function stepApproach(profile) {
+    var def = step('approach', 'project', {
       title: '你提出了什么方案？为什么选它？',
       subtitle: '重点写"为什么不是别的方案"。面试官想看的其实是你的排除过程。',
       why: '方案谁都能想，取舍才是能力。',
@@ -306,6 +317,7 @@
       skippable: false,
       targetPath: 'projects.{i}.approach',
     });
+    return withPlaybook(def, profile, 'approach');
   }
 
   function stepAlternatives() {
@@ -370,8 +382,8 @@
     });
   }
 
-  function stepMetrics() {
-    return step('metrics', 'project', {
+  function stepMetrics(profile) {
+    var def = step('metrics', 'project', {
       title: '有没有可以量化的数字？',
       subtitle: '有就写，没有就留空。系统不会替你编一个。',
       why: '数字要能说出出处。说不出出处的数字，在面试里是负资产。',
@@ -380,6 +392,7 @@
       skippable: true,
       targetPath: 'projects.{i}.metrics',
     });
+    return withPlaybook(def, profile, 'metrics');
   }
 
   /** 模块 G：复盘与局限 */

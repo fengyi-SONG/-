@@ -67,6 +67,10 @@ input,textarea,select{font-family:inherit;font-size:14px;color:var(--text)}
   border-left:2px solid var(--warn);padding:8px 12px;border-radius:0 8px 8px 0;margin-bottom:16px;line-height:1.6}
 .q-why{font-size:11.5px;color:var(--muted);background:var(--panel2);border-left:2px solid #3d4452;
   padding:7px 11px;border-radius:0 7px 7px 0;margin-bottom:14px;line-height:1.6}
+.q-book{margin:10px 0;padding:12px 14px;background:var(--panel2);border:1px solid var(--line);border-radius:10px}
+.qb-name{font-size:12.5px;font-weight:600;color:var(--accent,#5b8cff);margin-bottom:8px}
+.qb-row{font-size:12px;color:var(--muted);line-height:1.6;margin:4px 0}
+.qb-row b{display:block;font-size:10.5px;color:var(--fg2,#9aa3b2);letter-spacing:.05em;margin-top:6px}
 
 /* 缺口清单：跳过的内容长期可见 */
 .gap-box{display:none;flex:0 0 auto;border-top:1px solid var(--line);padding:10px 16px;background:var(--panel2)}
@@ -511,6 +515,11 @@ function renderStep(){
   if(s.subtitle)h+='<div class="q-sub">'+esc(s.subtitle)+'</div>';
   if(s.why)h+='<div class="q-why">为什么问这个：'+esc(s.why)+'</div>';
   if(s.tip)h+='<div class="q-tip">💡 '+esc(s.tip)+'</div>';
+  if(s.card)h+='<div class="q-book"><div class="qb-name">📖 方法论卡 · '+esc(s.card.name)+'</div>'
+    +'<div class="qb-row"><b>解决什么问题</b>'+esc(s.card.problem)+'</div>'
+    +'<div class="qb-row"><b>怎么执行</b>'+esc(s.card.how)+'</div>'
+    +'<div class="qb-row"><b>做完你该有什么</b>'+esc(s.card.evidence)+'</div>'
+    +'<div class="qb-row"><b>没有数据时</b>'+esc(s.card.noData)+'</div></div>';
 
   // 回填已有值（从缺口清单回来补时很有用）
   var pre=(s.path&&s.path!=='')?getByPath(state.profile,s.path):null;
