@@ -10,7 +10,7 @@
  *   - 卡片圆角 + 极轻阴影 + 细描边
  *   - 滚动进入的微动效（仅网页版，打印时关闭）
  *
- * 四套主题：aurora(现代科技) / paper(编辑质感) / mono(极简黑白) / noir(深色)
+ * 两套主题（T5 收缩）：aurora(现代科技) / paper(编辑质感)
  */
 (function (global) {
   'use strict';
@@ -127,26 +127,6 @@
       cardShadow: '0 1px 2px rgba(25,23,19,.05)',
       metricBg: '#f2eee4',
     },
-    mono: {
-      label: 'Mono', desc: '极简 · 黑白',
-      bg: '#ffffff', surface: '#ffffff', text: '#0a0a0a', muted: '#767676',
-      line: '#e4e4e4', soft: '#f6f6f6', radius: '0px',
-      display: '"Inter Tight","Helvetica Neue","PingFang SC",system-ui,sans-serif',
-      body: '"Inter","Helvetica Neue","PingFang SC","Microsoft YaHei",system-ui,sans-serif',
-      h1: 'clamp(46px,8.5vw,78px)', weight: 600, tracking: '-0.05em',
-      cardShadow: 'none',
-      metricBg: '#f6f6f6',
-    },
-    noir: {
-      label: 'Noir', desc: '深色 · 高级感',
-      bg: '#0a0b0d', surface: '#121417', text: '#f4f5f7', muted: '#9298a3',
-      line: '#23262c', soft: '#181b1f', radius: '18px',
-      display: '"Inter Tight","Inter","Helvetica Neue","PingFang SC",system-ui,sans-serif',
-      body: '"Inter","Helvetica Neue","PingFang SC","Microsoft YaHei",system-ui,sans-serif',
-      h1: 'clamp(48px,9vw,84px)', weight: 700, tracking: '-0.045em',
-      cardShadow: '0 1px 2px rgba(0,0,0,.4), 0 12px 32px -16px rgba(0,0,0,.8)',
-      metricBg: 'linear-gradient(160deg,#181b1f,#121417)',
-    },
   };
 
   /* ---------------- CSS ---------------- */
@@ -154,7 +134,7 @@
   function buildCSS(p) {
     var t = THEMES[p.meta.theme] || THEMES.aurora;
     var accent = safeColor(p.meta.accent);
-    var isDark = p.meta.theme === 'noir';
+    var isDark = false; // noir 已随 T5 裁剪移除
     var motion = p.meta.showMotion !== false;
 
     return `

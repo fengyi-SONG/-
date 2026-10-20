@@ -215,6 +215,11 @@
 
     // --- meta ---
     p.meta.version = CURRENT_VERSION;
+    // T5：mono/noir 主题已裁剪，旧数据归一到 aurora
+    if (p.meta.theme === 'mono' || p.meta.theme === 'noir') {
+      p.meta.theme = 'aurora';
+      notes.push('主题 ' + p.meta.theme + ' 已合并为 aurora');
+    }
     p.meta.theme = p.meta.theme || 'aurora';
     p.meta.accent = p.meta.accent || '#2f5eff';
     if (!Array.isArray(p.meta.sources)) p.meta.sources = [];
