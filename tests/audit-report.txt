@@ -1,0 +1,30 @@
+通过 27 失败 1
+  ✗ F4 造项目后立即追问项目缺口(非直接跳过) :: exp.org
+[1] 零经历 hasExp 后 meta 状态: {"noExp":true,"srcScanned":true}
+[1] 下一题: buildProject | 没关系，我们从零造一个出来
+[2] starter 后下一题: exp.org | 先说第一段经历：在哪家公司 / 哪个组织？ | skippable= false | targetType= experience
+    >>> 这道题就是「在哪家公司/组织」——零经历用户无话可答，且 skippable=false
+[3] projects 数量: 1 experiences 数量: 0
+[4] parseMetricInput( "大概提升了不少" ) => [{"value":"大概提升了不少","label":"效果"}]
+[4] parseMetricInput( "效果挺好的" ) => [{"value":"效果挺好的","label":"效果"}]
+[4] parseMetricInput( "不知道" ) => [{"value":"不知道","label":"效果"}]
+[4] parseMetricInput( "很多" ) => [{"value":"很多","label":"效果"}]
+[5] 约30% => [{"value":"30%","label":"效果"}]
+[6] 提升约30% => [{"value":"30%","label":"效果"}]
+=== 声称的功能 vs 代码实体 ===
+✓ 存在  AI 设置面板（Key 输入/保存）
+✗ 缺失  LLM 解析实现（interview-engine 内）
+✗ 缺失  把 Interview 引擎接入主流程 index.html
+✗ 缺失  每个问题展示"为什么问"（step.why 在渲染中被使用）
+✗ 缺失  任何"证据/事实状态"字段
+✗ 缺失  离开页面提醒（未保存内容保护）
+✗ 缺失  导出前事实检查
+✗ 缺失  数据删除能力（含 localStorage 全清）
+✓ 存在  已有材料导入（除"一次性说"外）
+✗ 缺失  多项目/会话保存
+✗ 缺失  产品经理专属流程（当前是 10 岗位通用）
+
+=== 关键交互对象 ===
+back() 只回退 profile: true
+下一步 直接丢弃未答内容: false
+步骤无"已答记录"，回退后不会记住: hist 只存 profile 快照 -> true

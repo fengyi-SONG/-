@@ -5,6 +5,7 @@ legacy/
 .bak/
 _test.js
 _t2.js
+_audit*.js
 .workbuddy/
 *.png
 .DS_Store
