@@ -19,7 +19,7 @@
 
   function emptyProfile() {
     return {
-      meta: { version: 2, updatedAt: new Date().toISOString(), theme: 'aurora', accent: '#2f5eff', showMotion: true },
+      meta: { version: 2, updatedAt: new Date().toISOString(), theme: 'aurora', accent: '#2f5eff', showMotion: true, stage: '', srcScanned: false, sources: [] },
       hero: {
         name: '', title: '', tagline: '', location: '', email: '', phone: '',
         links: [], avatar: '', available: true, badge: '',
