@@ -276,18 +276,18 @@ name → track → roleText → stage → sourceInventory → pickPractice
 - `beforeunload` 保护：有未保存内容时离开页面会提示
 - 存储键带版本号（`pf.profile.v3` / `pf.ai.v3` / `pf.session.v3`）
 
-### 4.9 F8 LLM 增强 —— 【未实现】
+### 4.9 F8 LLM 增强 —— 【已实现·已验证（mock 接口）】
 
-**当前状态**：代码里没有任何 LLM 调用。v3.0 文档声称"任意 OpenAI 兼容接口"属于**不实表述**，已在第 11 章更正。界面上的「AI 设置」入口不产生实际效果。
+**当前状态（v3.5）**：路线 A（用户自填 Key）已实现并经端到端验证：
 
-**为什么没接**：见诊断报告的任务依赖链 —— 没有事实核验闸门就直接接 LLM，等于给"编造内容"装了一条高速公路。
+- 「AI 设置」面板：接口地址 + Key + 模型名，仅存本机 localStorage，带「测试连接」
+- 长文本题出现「✨ 让 AI 帮我改写」按钮 → 弹窗并排对比原文/改写文 → 用户确认才采用
+- **AI 润色的答案提交后自动标 `status:'assumption'` + `by:'ai'`**，并进入事实检查清单等待用户确认——`assertClaim` 守卫保证 AI 内容永远无法直接成为 `fact`
+- prompt 铁律：不新增事实/数字、不改数值、不把推断改写成结论、只输出正文
+- 未配置 Key 时全部功能照常可用（LLM 是增强不是依赖）
+- 验证：`tests/llm-e2e.js`（puppeteer + mock 接口，13 项断言），覆盖成功/未配置/401 错误/状态标记/入清单全链路
 
-**接入前置条件**（缺一不可）：
-
-1. LLM 的一切输出默认写入 `status:'assumption'`，`by:'ai'` 时禁止置为 `fact`（`assertClaim` 已实现该守卫）
-2. 用户必须在事实检查面板逐条确认后，才可升级为 `fact`
-3. 明确告知发送了哪些文本、发往哪个域名
-4. 关闭 LLM 时，全部功能不受影响
+**尚未验证**：对真实 LLM 接口（DeepSeek 等）的实际调用效果——需要真实 Key，属人工目检项。
 
 ---
 
@@ -376,7 +376,7 @@ name → track → roleText → stage → sourceInventory → pickPractice
 | 隐私面板 + 数据删除 | P1 | ✅ 已验证 | 无后端产品的基本要求 |
 | 第二套主题（paper） | P2 | ✅ 已验证 | 编辑类岗位适用 |
 | 移动端适配 | P2 | ⚠️ 未验证 | 有"手机"预览，真机未测 |
-| LLM 润色 | P2 | ❌ 未实现 | **必须等 P0 闸门 + 面板验证通过** |
+| LLM 润色 | P2 | ✅ 已验证（mock） | 路线 A；AI 输出强制 assumption，E2E 覆盖 |
 | 简历 PDF 导入 | P3 | ❌ 未实现 | 需先验证用户是否已有简历 |
 | 多语言作品集 | P3 | ❌ 未实现 | 首期用户无需 |
 | 模板市场 | P3 | ❌ 未实现 | 生态玩法，过早 |
@@ -532,7 +532,7 @@ node tests/rolekit-test.js     # 通过 13 失败 0
 | G2 | ~~事实检查面板未在浏览器中验证~~ | 已于 v3.4 用 puppeteer 端到端验证（tests/panel-e2e.js，12 项断言），并修复 2 个真 bug：ledger 误读 v2 字段导致叙述项不入清单、applyFix 对 fields.* 写不进 | ✅ 已解决 |
 | G3 | PDF 打印路径已验证（A4、7 页、分页正常），html2pdf 截图路径与 Safari 未人工目检 | 导出按钮走 html2pdf，仍可能有问题 | 用户目检 .preview/pdf-print-a4.pdf |
 | G4 | ~~移动端未测~~ | 已于 v3.4 验证 375px 无横向溢出并修复顶栏换行（tests/verify-pdf-mobile.js） | ✅ 已解决 |
-| G5 | LLM 未接入 | 无法提供"润色"能力 | G2 已解决，可接入（输出默认 assumption） |
+| G5 | ~~LLM 未接入~~ | 已于 v3.5 实现路线 A（用户自填 Key），E2E 13 项断言覆盖；真实接口效果待人工目检 | ✅ 已解决 |
 | G6 | 只有 PM 一个深流程岗位 | 其他岗位用户体验弱 | 待 H6 验证后决定 |
 | G7 | 无自动化浏览器测试 | ~~部分解决~~：已有 panel-e2e / verify-pdf-mobile | 部分解决 |
 | G8 | 无性能测量基线 | 不清楚"慢"到什么程度 | 加 Lighthouse 记录 |

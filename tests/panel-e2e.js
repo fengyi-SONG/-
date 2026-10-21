@@ -12,7 +12,7 @@ const NODE_WS = 'C:/Users/Fengyi Song/.workbuddy/binaries/node/workspace/node_mo
 const EDGE = 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe';
 const PORT = 8791;
 
-const { puppeteer } = require(path.join(NODE_WS, 'puppeteer-core', 'package.json')) ? { puppeteer: require(path.join(NODE_WS, 'puppeteer-core')) } : {};
+const puppeteer = require(path.join(NODE_WS, 'puppeteer-core'));
 
 /* 极简静态服务器 */
 function serve() {
@@ -55,7 +55,7 @@ function t(name, cond) {
 
 (async () => {
   const srv = await serve();
-  const browser = await require('puppeteer-core').launch({
+  const browser = await puppeteer.launch({
     executablePath: EDGE, headless: 'new',
     args: ['--no-sandbox', '--disable-gpu'],
   });

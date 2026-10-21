@@ -298,7 +298,25 @@ textarea.field{resize:vertical;min-height:104px}
     </div>
     <div class="modal-f">
       <button class="btn" id="btnCfgClear">清除</button>
+      <button class="btn" id="btnCfgTest">测试连接</button>
       <button class="btn btn-p" id="btnCfgSave">保存</button>
+    </div>
+  </div>
+</div>
+
+<div class="mask" id="mPolish">
+  <div class="modal" style="max-width:640px">
+    <div class="modal-h"><h3>AI 改写预览</h3><button class="btn btn-sm" data-close="mPolish">关闭</button></div>
+    <div class="modal-b">
+      <div class="pw-block"><div class="pw-k">你的原文</div>
+        <div id="polOrig" style="font-size:13px;color:var(--muted);line-height:1.7;padding:8px 10px;background:var(--panel2);border-radius:8px;white-space:pre-wrap"></div></div>
+      <div class="pw-block"><div class="pw-k" style="color:var(--accent,#5b8cff)">AI 改写后（采用后这条会标为「未验证」）</div>
+        <div id="polNew" style="font-size:13px;line-height:1.7;padding:8px 10px;background:color-mix(in srgb,var(--accent,#5b8cff) 6%,transparent);border-radius:8px;white-space:pre-wrap"></div></div>
+      <div class="pw-d" style="font-size:12px;color:var(--muted)">AI 被要求不新增任何事实和数字。但请你自己核对一遍——说出去的话责任在你，不在 AI。</div>
+    </div>
+    <div class="modal-f">
+      <button class="btn" data-close="mPolish">保留原文</button>
+      <button class="btn btn-p" id="btnPolUse">采用 AI 版本</button>
     </div>
   </div>
 </div>
@@ -395,6 +413,7 @@ textarea.field{resize:vertical;min-height:104px}
 <script src="src/role-kit.js"></script>
 <script src="src/flow-engine.js"></script>
 <script src="src/fact-panel.js"></script>
+<script src="src/llm.js"></script>
 <script src="src/inline-edit.js"></script>
 <script src="vendor/html2pdf.bundle.min.js"></script>
 <script>
@@ -402,6 +421,9 @@ textarea.field{resize:vertical;min-height:104px}
 'use strict';
 var R=window.Renderer, IE=window.InlineEdit;
 var FC=window.FactCore, FL=window.Flow, FP=window.FactPanel;
+// 供自动化测试/控制台调试使用的最小接口（不承载任何数据逻辑）
+window.__PF={};
+setTimeout(function(){ window.__PF={ state:state, next:next, goNext:goNext, openFact:openFact, persist:persist, renderStep:renderStep }; },0);
 
 var LS_P='pf.profile.v3', LS_C='pf.ai.v3', LS_S='pf.session.v3';
 var LS_OK=(function(){try{localStorage.setItem('__t','1');localStorage.removeItem('__t');return true}catch(e){return false}})();
@@ -582,6 +604,7 @@ function renderStep(){
   else if(s.input==='longtext'){
     var lv=(typeof pre==='string')?pre:'';
     h+='<textarea class="field" id="textInp" rows="5" placeholder="'+esc(s.placeholder||'')+'">'+esc(lv)+'</textarea>';
+    if(state.cfg)h+='<div style="margin-top:8px"><button class="btn btn-sm" id="btnAiPolish">✨ 让 AI 帮我改写（改写后会标为「未验证」）</button><span id="aiBusy" style="display:none;font-size:12px;color:var(--muted);margin-left:8px">AI 正在改写…</span></div>';
     if(s.example)h+='<div class="q-sub" style="margin-top:10px;font-size:12px">📝 '+esc(s.example)+'</div>';
     if(s.suggestions&&s.suggestions.length){
       h+='<div class="sug-h">这个方向常见的做法，用到了就点一下加进去（不会自动算你做过）：</div><div class="chips">';
@@ -697,6 +720,29 @@ function bindStep(s){
     setTimeout(function(){ti.focus()},60);
   }
 
+  /* AI 润色（可选）：候选预览 → 用户确认才采用 → 采纳后本答案标为「未验证」 */
+  var bap=$('#btnAiPolish');
+  if(bap){
+    bap.onclick=function(){
+      var txt=($('#textInp').value||'').trim();
+      if(txt.length<10){toast('先写至少一句话，AI 才有可改的',true);return}
+      $('#aiBusy').style.display='inline';bap.disabled=true;
+      var ctx={problem:'项目的问题描述',approach:'项目的做法',result:'项目的结果',analysis:'项目的分析过程',limitations:'项目的局限',detail:'经历细节'}[s.id]||'作品集内容';
+      FactLLM.polish(state.cfg,txt,ctx).then(function(r){
+        $('#aiBusy').style.display='none';bap.disabled=false;
+        if(!r.ok){toast(r.error,true);return}
+        $('#polOrig').textContent=txt;$('#polNew').textContent=r.text;
+        $('#mPolish').classList.add('on');
+        $('#btnPolUse').onclick=function(){
+          $('#textInp').value=r.text;state.answer=r.text.trim();
+          state.aiUsed=s.id;           // 提交时把该答案标为 assumption + by:'ai'
+          $('#mPolish').classList.remove('on');
+          toast('已采用 AI 版本。这条会标为「未验证」，可在事实检查里确认');
+        };
+      });
+    };
+  }
+
   $$('[data-f]',body).forEach(function(inp){
     inp.oninput=function(){
       state.answer=state.answer||{};
@@ -797,9 +843,24 @@ function next(){
   if(val==='__skip__'){val='';outcome='skipped'}
 
   state.profile=FL.applyAnswer(state.profile,s,val,outcome);
+  // AI 润色的答案：产品红线——状态一律 assumption，by:'ai'（assertClaim 禁止 AI 内容标为 fact）
+  if(state.aiUsed===s.id&&!skippedNarrative(s,val)){
+    var fk={problem:'problem',approach:'approach',result:'result',analysis:'analysis',limitations:'limitations',detail:null}[s.id];
+    if(fk&&s.index!=null&&s.index>=0){
+      var prj=state.profile.projects[s.index];
+      if(prj){
+        if(fk==='analysis'){prj.analysisStatus='assumption';prj.analysisBy='ai'}
+        else if(fk==='limitations'){if(prj.limitations){prj.limitations.status='assumption';prj.limitations.by='ai'}}
+        else if(prj.fields&&prj.fields[fk]){prj.fields[fk].status='assumption';prj.fields[fk].by='ai'}
+      }
+    }
+    state.aiUsed=null;
+  }
   state.session=FL.record(state.session,s,outcome,s.path);
   persist();renderPreview();refreshFactCount();goNext();
 }
+
+function skippedNarrative(s,val){return val===''||val==='__skip__'}
 
 function isEmpty(v){
   if(v==null)return true;
@@ -978,6 +1039,14 @@ function init(){
     state.cfg=null;if(LS_OK)localStorage.removeItem(LS_C);
     $('#cfgBase').value='';$('#cfgKey').value='';$('#cfgModel').value='';
     updatePill();toast('已清除');
+  };
+  $('#btnCfgTest').onclick=function(){
+    var b=$('#btnCfgTest');b.disabled=true;b.textContent='测试中…';
+    var cfg={baseUrl:$('#cfgBase').value.trim(),apiKey:$('#cfgKey').value.trim(),model:$('#cfgModel').value.trim()||'deepseek-chat'};
+    FactLLM.testConn(cfg).then(function(r){
+      b.disabled=false;b.textContent='测试连接';
+      toast(r.ok?'连接成功，Key 可用':('连接失败：'+r.error),!r.ok);
+    });
   };
 
   $('#btnFree').onclick=function(){$('#mFree').classList.add('on');$('#freeText').focus()};
