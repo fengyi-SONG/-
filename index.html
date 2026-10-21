@@ -205,6 +205,15 @@ textarea.field{resize:vertical;min-height:104px}
   .app{grid-template-columns:1fr;grid-template-rows:1fr 1fr}
   .left{border-right:none;border-bottom:1px solid var(--line)}
 }
+/* 移动端（G4）：顶栏可换行、隐藏次要按钮、压缩留白 */
+@media (max-width:720px){
+  .top{height:auto;min-height:54px;flex-wrap:wrap;padding:8px 12px;row-gap:6px}
+  .logo small{display:none}
+  #btnSettings,#btnSample{display:none}
+  .btn{padding:6px 10px;font-size:12px}
+  .app{grid-template-rows:auto auto}
+  .left,.right{overflow:visible}
+}
 </style>
 </head>
 <body>

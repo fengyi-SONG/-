@@ -48,7 +48,7 @@
     } else {
       host.innerHTML = led.items.map(function (it, i) {
         var meta = FC.statusMeta(it.status);
-        return '<div class="fs-item" data-i="' + i + '">' +
+        return '<div class="fs-item" data-i="' + i + '" data-ref="' + esc(it.ref) + '">' +
           '<div class="fs-head">' +
             '<span class="fs-kind">' + esc(it.kind) + '</span>' +
             '<span class="fs-status fs-' + it.status + '">' + esc(meta.label) + '</span>' +
@@ -103,6 +103,21 @@
    */
   function applyFix(profile, ref, patch) {
     var p = profile;
+
+    // 项目叙述字段（problem/approach/result/context）：文本实际存在 fields.<k> 里
+    var nm = String(ref).match(/^projects\.(\d+)\.(problem|approach|result|context)$/);
+    if (nm) {
+      var projN = p.projects && p.projects[+nm[1]];
+      if (!projN) return false;
+      projN.fields = projN.fields || {};
+      projN.fields[nm[2]] = projN.fields[nm[2]] || { text: projN[nm[2]] || '', status: 'claim' };
+      if (patch.status) projN.fields[nm[2]].status = patch.status;
+      if (patch.source != null) projN.fields[nm[2]].source = patch.source;
+      // v2 兼容：顶层同名对象若存在也同步状态
+      if (projN[nm[2]] && typeof projN[nm[2]] === 'object' && patch.status) projN[nm[2]].status = patch.status;
+      return true;
+    }
+
     var ks = String(ref).split('.');
     var target = p;
     for (var i = 0; i < ks.length; i++) {
@@ -113,13 +128,6 @@
     if (patch.status) target.status = patch.status;
     if (patch.source != null) target.source = patch.source;
 
-    // 如果是项目的叙述字段，同步改 fields.xxx.status
-    var m = String(ref).match(/^projects\.(\d+)\.(problem|approach|result)$/);
-    if (m && patch.status) {
-      var proj = p.projects[+m[1]];
-      if (proj && proj.fields && proj.fields[m[2]]) proj.fields[m[2]].status = patch.status;
-    }
-    // 顶部/项目指标确认后，来源清空则视为"用户口头确认真实"
     if (patch.status === 'fact' && /metrics\.\d+$/.test(ref) && target.source == null) target.source = '作者确认';
     return true;
   }

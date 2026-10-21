@@ -345,12 +345,15 @@
 
     (p.projects || []).forEach(function (x, xi) {
       var name = x.name || '未命名项目';
-      (['problem', 'approach', 'result']).forEach(function (k) {
-        var st = (x.fields && x.fields[k] && x.fields[k].status) || 'claim';
-        if (!x[k]) return;
+      // v3：文本在 fields.<k>.text（v2 兼容：顶层 x[k]）
+      (['problem', 'approach', 'result', 'context']).forEach(function (k) {
+        var f = x.fields && x.fields[k] ? x.fields[k] : null;
+        var txt = (f && f.text) || x[k];
+        var st = (f && f.status) || 'claim';
+        if (!txt) return;
         if (isConfirmed(st)) return;
         push('项目叙述', 'projects.' + xi + '.' + k,
-          name + ' · ' + ({ problem: '问题', approach: '做法', result: '结果' })[k] + '：' + x[k], st);
+          name + ' · ' + ({ problem: '问题', approach: '做法', result: '结果', context: '背景' })[k] + '：' + txt, st);
       });
       (x.metrics || []).forEach(function (m, mi) {
         if (!m || !m.value) return;
@@ -367,6 +370,11 @@
       }
       if (!x.limitations || !x.limitations.text) {
         push('局限与不足', 'projects.' + xi + '.limitations', name + ' · 尚未说明方案局限', 'unknown');
+      } else if (!isConfirmed(x.limitations.status)) {
+        push('局限与不足', 'projects.' + xi + '.limitations', name + ' · 局限：' + x.limitations.text, x.limitations.status);
+      }
+      if (x.nextStep && x.nextStep.text && !isConfirmed(x.nextStep.status)) {
+        push('下一步计划', 'projects.' + xi + '.nextStep', name + ' · 计划：' + x.nextStep.text, x.nextStep.status || 'plan');
       }
     });
 
